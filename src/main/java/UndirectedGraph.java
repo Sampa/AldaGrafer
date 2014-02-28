@@ -43,4 +43,6 @@ public interface UndirectedGraph<T> {
      * @return en graf som representerar ett minimalt spännande träd.
      */
     UndirectedGraph<T> minimumSpanningTree();
+
+
 }

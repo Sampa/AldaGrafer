@@ -1,37 +1,25 @@
 import java.util.*;
-import org.hibernate.type.SetType;
-
-import javax.validation.constraints.Null;
-
-/**
- * Created by Daniel on 2014-02-26.
- */
 public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
-    private ArrayList<Node> nodes = new ArrayList<>();
-    private ArrayList<Edge> edges = new ArrayList<>();
-
+    private ArrayList<Node<ANY>> nodes = new ArrayList<>();
+    private ArrayList<Edge<ANY>> edges = new ArrayList<>();
     public MyUndirectedGraph() {
     }
-
     private boolean contains(ANY find){
-        for (Node node :  nodes){
+        for (Node<ANY> node :  nodes){
             if(node.getElement().equals(find))
                 return true;
         }
         return false;
     }
-    private Edge getEdge(Node node1,Node node2){
+    private Edge<ANY> getEdge(Node<ANY> node1, Node<ANY> node2){
         for (Edge<ANY> edge :  edges){
-            if((edge.start.equals(node1) && edge.dest.equals(node2))){
-                    return edge;
-            }else if(edge.start.equals(node2) && edge.dest.equals(node1)){
+            if( (edge.start.equals(node1) && edge.dest.equals(node2)) || (edge.start.equals(node2) && edge.dest.equals(node1)) )
                 return edge;
-            }
         }
         return null;
     }
-    private Node getNode(ANY find){
-        for (Node node : nodes) {
+    private Node<ANY> getNode(ANY find){
+        for (Node<ANY> node : nodes) {
             if(node.getElement().equals(find))
                 return node;
         }
@@ -41,7 +29,7 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
     public boolean add(ANY newNodeElement) {
         if(contains(newNodeElement))
             return false;
-        Node<ANY> newNode = new Node<ANY>(newNodeElement);
+        Node<ANY> newNode = new Node<>(newNodeElement);
         nodes.add(newNode);
         return true;
     }
@@ -49,46 +37,71 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
     public boolean connect(ANY element1, ANY element2, int cost) {
         if(!contains(element1) || !contains(element2))
             return false;
-        Node nodeA = getNode(element1);
-        Node nodeB = getNode(element2);
-        Edge current = getEdge(nodeA,nodeB);
+        Node<ANY> nodeA = getNode(element1);
+        Node<ANY> nodeB = getNode(element2);
+        Edge<ANY> current = getEdge(nodeA, nodeB);
         if(current !=null){
             current.cost = cost;
             return true;
         }
-        Edge<ANY> newEdge = new Edge<ANY>(cost,nodeA,nodeB);
+        Edge<ANY> newEdge = new Edge<>(cost,nodeA,nodeB);
         edges.add(newEdge);
         return true;
     }
 
     @Override
     public int getCost(ANY element1, ANY element2) {
-        Edge current;
+        Edge<ANY> current;
         current = getEdge(getNode(element1), getNode(element2));
         if (current != null) {
             return current.getCost();
         }
         return -1;
     }
-
     @Override
     public UndirectedGraph<ANY> minimumSpanningTree() {
-//        DisjSets ds = new DisjSets(nodes.size());
-        UndirectedGraph<ANY> minSpanTree = new MyUndirectedGraph<>();
-        PriorityQueue<Edge> queue = new PriorityQueue<Edge>(edges);
-        ArrayList<Edge> path  = new ArrayList<>();
-        while(path.size() != nodes.size()-1){
+        //klassen DsjSets är tagen från boken (DisjSetsFast exemplet)
+        DisjSets ds = new DisjSets(nodes.size());
+        //initiera en ny graf som vi bygger upp och returnerar
+        MyUndirectedGraph<ANY> minSpanTree = new MyUndirectedGraph<>();
+        //Ranka alla edges
+        PriorityQueue<Edge<ANY>> queue = new PriorityQueue<>(edges);
+        //Vi mappar varje nod mot en siffra (för DisjSets skull) och lägger in den i nya grafen
+        HashMap<Node<ANY>,Integer> nodeNumbers = new HashMap<>();
+        for(int i=0; i<nodes.size();i++){
+            nodeNumbers.put(nodes.get(i), i);
+            minSpanTree.add(nodes.get(i).getElement());
+        }
+        /*
+            ett minSpanTree har alltid en edge mindre än antalet noder
+            sålänge vårt nya träd har färre edges än antalet noder-1
+            i det ursprungliga kan vi inte vara klara
+        */
+        int set1,set2;
+        while(minSpanTree.edges.size() != nodes.size()-1){
+            //Edgen med minst vikt
             Edge<ANY> current = queue.poll();
-            System.out.println(current);
-            if(current!=null && !path.contains(current)){
-                path.add(current);
-                minSpanTree.add((ANY) current.start.getElement());
-                minSpanTree.add((ANY) current.dest.getElement());
-                minSpanTree.connect((ANY)current.start.getElement(),(ANY)current.dest.getElement(),current.getCost());
-            }
+            if(current!=null && !minSpanTree.hasEdge(current)){
+                //kolla vilken grupp de är associerade med
+                set1 = ds.find(nodeNumbers.get(current.dest));
+                set2 = ds.find(nodeNumbers.get(current.start));
+                if(set1!=set2){
+                    ds.union(set1,set2);
+                    minSpanTree.connect((ANY)current.start.getElement(),(ANY)current.dest.getElement(),current.getCost());
+                }
+             }
         }
         return minSpanTree;
     }
+
+    private boolean hasEdge(Edge<ANY> current) {
+        for(Edge<ANY> edge:edges){
+            if(edge.equals(current))
+                return true;
+        }
+        return false;
+    }
+
     private class Node<ANY>{
         private ANY element;
         public Node(ANY element) {
@@ -106,7 +119,6 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
         private int cost;
         private Node dest;
         private Node start;
-
         private Edge(int cost, Node<ANY> start,Node<ANY> dest) {
             this.cost = cost;
             this.dest = dest;
@@ -121,15 +133,6 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
             if(this.cost==that.cost) return 0;
             else if(this.cost <that.cost) return -1;
             else return 1;
-        }
-
-        @Override
-        public String toString() {
-            return "Edge{" +
-                    "cost=" + cost +
-                    ", dest=" + dest +
-                    ", start=" + start +
-                    '}';
         }
     }
 }

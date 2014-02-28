@@ -10,13 +10,12 @@
 // No error checking is performed
 
 /**
- * Disjoint set class. (Package friendly so not used accidentally)
- * Does not use union heuristics or path compression.
+ * Disjoint set class, using union by rank
+ * and path compression.
  * Elements in the set are numbered starting at 0.
  * @author Mark Allen Weiss
- * @see DisjSetsFast
  */
-class DisjSets
+public class DisjSets
 {
     /**
      * Construct the disjoint sets object.
@@ -30,7 +29,7 @@ class DisjSets
     }
 
     /**
-     * Union two disjoint sets.
+     * Union two disjoint sets using the height heuristic.
      * For simplicity, we assume root1 and root2 are distinct
      * and represent set names.
      * @param root1 the root of set 1.
@@ -38,11 +37,18 @@ class DisjSets
      */
     public void union( int root1, int root2 )
     {
-        s[ root2 ] = root1;
+        if( s[ root2 ] < s[ root1 ] )  // root2 is deeper
+            s[ root1 ] = root2;        // Make root2 new root
+        else
+        {
+            if( s[ root1 ] == s[ root2 ] )
+                s[ root1 ]--;          // Update height if same
+            s[ root2 ] = root1;        // Make root1 new root
+        }
     }
 
     /**
-     * Perform a find.
+     * Perform a find with path compression.
      * Error checks omitted again for simplicity.
      * @param x the element being searched for.
      * @return the set containing x.
@@ -52,7 +58,7 @@ class DisjSets
         if( s[ x ] < 0 )
             return x;
         else
-            return find( s[ x ] );
+            return s[ x ] = find( s[ x ] );
     }
 
     private int [ ] s;
@@ -61,15 +67,15 @@ class DisjSets
     // Test main; all finds on same output line should be identical
     public static void main( String [ ] args )
     {
-        int numElements = 128;
-        int numInSameSet = 16;
+        int NumElements = 128;
+        int NumInSameSet = 16;
 
-        DisjSets ds = new DisjSets( numElements );
+        DisjSets ds = new DisjSets( NumElements );
         int set1, set2;
 
-        for( int k = 1; k < numInSameSet; k *= 2 )
+        for( int k = 1; k < NumInSameSet; k *= 2 )
         {
-            for( int j = 0; j + k < numElements; j += 2 * k )
+            for( int j = 0; j + k < NumElements; j += 2 * k )
             {
                 set1 = ds.find( j );
                 set2 = ds.find( j + k );
@@ -77,12 +83,11 @@ class DisjSets
             }
         }
 
-        for( int i = 0; i < numElements; i++ )
+        for( int i = 0; i < NumElements; i++ )
         {
             System.out.print( ds.find( i )+ "*" );
-            if( i % numInSameSet == numInSameSet - 1 )
+            if( i % NumInSameSet == NumInSameSet - 1 )
                 System.out.println( );
         }
-        System.out.println( );
     }
 }
