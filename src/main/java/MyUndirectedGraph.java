@@ -1,4 +1,7 @@
-import java.util.ArrayList;
+import java.util.*;
+import org.hibernate.type.SetType;
+
+import javax.validation.constraints.Null;
 
 /**
  * Created by Daniel on 2014-02-26.
@@ -12,7 +15,7 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
 
     private boolean contains(ANY find){
         for (Node node :  nodes){
-            if(node.element.equals(find))
+            if(node.getElement().equals(find))
                 return true;
         }
         return false;
@@ -29,7 +32,7 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
     }
     private Node getNode(ANY find){
         for (Node node : nodes) {
-            if(node.element.equals(find))
+            if(node.getElement().equals(find))
                 return node;
         }
         return null;
@@ -38,7 +41,7 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
     public boolean add(ANY newNodeElement) {
         if(contains(newNodeElement))
             return false;
-        Node<ANY> newNode = new Node<>(newNodeElement);
+        Node<ANY> newNode = new Node<ANY>(newNodeElement);
         nodes.add(newNode);
         return true;
     }
@@ -60,7 +63,8 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
 
     @Override
     public int getCost(ANY element1, ANY element2) {
-        Edge current = getEdge(getNode(element1), getNode(element2));
+        Edge current;
+        current = getEdge(getNode(element1), getNode(element2));
         if (current != null) {
             return current.getCost();
         }
@@ -69,13 +73,28 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
 
     @Override
     public UndirectedGraph<ANY> minimumSpanningTree() {
-        return null;
+//        DisjSets ds = new DisjSets(nodes.size());
+        UndirectedGraph<ANY> minSpanTree = new MyUndirectedGraph<>();
+        PriorityQueue<Edge> queue = new PriorityQueue<Edge>(edges);
+        ArrayList<Edge> path  = new ArrayList<>();
+        while(path.size() != nodes.size()-1){
+            Edge<ANY> current = queue.poll();
+            System.out.println(current);
+            if(current!=null && !path.contains(current)){
+                path.add(current);
+                minSpanTree.add((ANY) current.start.getElement());
+                minSpanTree.add((ANY) current.dest.getElement());
+                minSpanTree.connect((ANY)current.start.getElement(),(ANY)current.dest.getElement(),current.getCost());
+            }
+        }
+        return minSpanTree;
     }
     private class Node<ANY>{
         private ANY element;
-        private Node(ANY element) {
+        public Node(ANY element) {
             this.element = element;
         }
+
         public String toString(){
             return element.toString();
         }
@@ -83,10 +102,26 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
             return element;
         }
     }
-    private class Edge<ANY>{
+    private class Edge<ANY> implements Comparable<ANY> {
         private int cost;
         private Node dest;
         private Node start;
+
+        private Edge(int cost, Node<ANY> start,Node<ANY> dest) {
+            this.cost = cost;
+            this.dest = dest;
+            this.start= start;
+        }
+        public int getCost() {
+            return cost;
+        }
+        @Override
+        public int compareTo(ANY object) {
+            Edge<ANY> that = (Edge<ANY>) object;
+            if(this.cost==that.cost) return 0;
+            else if(this.cost <that.cost) return -1;
+            else return 1;
+        }
 
         @Override
         public String toString() {
@@ -95,16 +130,6 @@ public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
                     ", dest=" + dest +
                     ", start=" + start +
                     '}';
-        }
-
-        private Edge(int cost, Node<ANY> start,Node<ANY> dest) {
-            this.cost = cost;
-            this.dest = dest;
-            this.start= start;
-        }
-
-        public int getCost() {
-            return cost;
         }
     }
 }
