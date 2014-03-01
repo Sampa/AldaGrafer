@@ -1,3 +1,7 @@
+/*
+Daniel van den Berg(dava4507@dsv.su.se)
+Eleni Kiriakou( elki8004@dsv.su.se )
+*/
 import java.util.*;
 public class MyUndirectedGraph<ANY> implements UndirectedGraph<ANY> {
     private ArrayList<Node<ANY>> nodes = new ArrayList<>();
